@@ -11,13 +11,9 @@
         <div class="caja c1">IMAGEN</div>
         <div class="caja c2">DETECCION</div>
         <div class="caja c3">PON TU ARCHIVO AQUI
-            <form action="upload" method="post" enctype="multipart/form-data">
+            <form action="{{ url_for('upload') }}" enctype="multipart/form-data">
                 <input type="file" name="file" accept=".png, .jpg, .jpeg" required>
                 <button type="submit">Cargar y Exportar</button>
-            </form>
-            <br>
-            <form action="/scan" method="get">
-                <button type="submit">Cargar y Escanear</button>
             </form>
         </div>
     </div> 
