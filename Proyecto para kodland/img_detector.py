@@ -1,78 +1,42 @@
 from keras.models import load_model  # TensorFlow is required for Keras to work
 from PIL import Image, ImageOps  # Install pillow instead of PIL
 import numpy as np
-from flask import Flask,request, send_file
+from flask import Flask,request, send_file, render_template
 from werkzeug.utils import secure_filename
 import os
-def Deteccion():
-    # Disable scientific notation for clarity
-    np.set_printoptions(suppress=True)
-
-    # Load the model
-    model = load_model("keras_Model.h5", compile=False)
-
-    # Load the labels
-    class_names = open("labels.txt", "r").readlines()
-
-    # Create the array of the right shape to feed into the keras model
-    # The 'length' or number of images you can put into the array is
-    # determined by the first position in the shape tuple, in this case 1
-    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
-
-    # Replace this with the path to your image
-    image = Image.open(__path__).convert("RGB")
-
-    # resizing the image to be at least 224x224 and then cropping from the center
-    size = (224, 224)
-    image = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
-
-    # turn the image into a numpy array
-    image_array = np.asarray(image)
-
-    # Normalize the image
-    normalized_image_array = (image_array.astype(np.float32) / 127.5) - 1
-
-    # Load the image into the array
-    data[0] = normalized_image_array
-
-    # Predicts the model
-    prediction = model.predict(data)
-    index = np.argmax(prediction)
-    class_name = class_names[index]
-    confidence_score = prediction[0][index]
-
-    #return class_name, confidence_score
-    # Print prediction and confidence score
-    print("Class:", class_name[2:], end="")
-    print("Confidence Score:", confidence_score)
+from Deteccion import Deteccion, result
 
 app = Flask(__name__)
 carpeta_destino = 'img'
 Deteccion_objetos = Deteccion()
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png','jpg','jpeg'}
+resultado = result()
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    file = request.files['file']
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/upload')
+def upload_file(image):
+    file = request.files[image]
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        fileNAME = secure_filename(file.filename)
+        file_path = os.path.join(app.config[UPLOAD_FOLDER], fileNAME)
         file.save(file_path)
         scanned_path = Deteccion_objetos(file_path)
     return send_file(scanned_path, as_attachment = True)
 
+@app.route('/answer')
+def Analyse_obj(road_objects):
+    if road_objects:
+        return resultado
+    else:
+        print("No se detectaron objetos.")
+
 if __name__ == '__main__':
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     app.run(debug=True)
-
-def Analyse_obj(road_objects):
-    if road_objects:
-        print("class:", class_name[2:], end="")
-        print("confidence Score:", confidence_score)
-                
-    else:
-        print("No se detectaron objetos.")
